@@ -1,0 +1,13 @@
+# Design: <feature-slug>
+
+## Approach
+
+## Alternatives considered
+- Option A: ... — rejected because ...
+- Option B (chosen): ...
+
+## Key risks
+- Risk: ... | Likelihood/Impact: ... | Mitigation: ...
+
+## Decisions needing explicit sign-off
+- [ ] ...

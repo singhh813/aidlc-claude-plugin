@@ -1,0 +1,13 @@
+{
+  "name": "aidlc-marketplace",
+  "owner": {
+    "name": "Harjinder Singh"
+  },
+  "plugins": [
+    {
+      "name": "aidlc",
+      "source": "./",
+      "description": "AI-Driven Development Life Cycle (AIDLC) orchestrator: multi-agent, staged development workflow with independent review and human approval gates."
+    }
+  ]
+}

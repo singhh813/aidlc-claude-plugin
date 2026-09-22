@@ -1,0 +1,8 @@
+{
+  "name": "aidlc",
+  "version": "1.0.0",
+  "description": "AI-Driven Development Life Cycle (AIDLC) orchestrator: multi-agent, staged development workflow (Inception, Construction, PR Publishing, Deployment Verification, Operations) with independent review and human approval gates.",
+  "author": {
+    "name": "Harjinder Singh"
+  }
+}
