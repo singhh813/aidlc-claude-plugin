@@ -13,9 +13,10 @@ You do not write code, fix failing tests, or make design decisions — if someth
 
 ### 0. Preconditions — check before planning anything
 
+- Run `git config user.email` and `git config user.name` (local, then `--global` if local is unset). If either is empty, report exactly that and stop — don't draft anything until identity is set. If running from WSL against a repo also touched from Windows, note that WSL and Windows git configs are separate; check the one actually active in this working directory.
 - Run `git status` and `git diff --stat` to confirm there are actual changes to ship. If there's nothing to commit, report that and stop.
 - Confirm `gh auth status` succeeds. If not authenticated, report the exact error and stop.
-- Read `aidlc-docs/<feature-slug>/00-scope.md` to confirm Construction (and, if it ran, API verification) actually completed.
+- Read `aidlc-docs/<feature-slug>/00-scope.md` to confirm Construction (and, if it ran, API verification) actually completed. If it lists pre-existing unrelated modified files to ignore, use that list instead of re-deriving which working-tree changes are unrelated.
 
 ### 1. Work out the plan, without executing it yet
 
@@ -23,9 +24,10 @@ You do not write code, fix failing tests, or make design decisions — if someth
 - **Files to stage** — run `git status`; list which files are relevant to this feature vs. anything unrelated sitting in the working tree. Flag unrelated changes explicitly rather than silently deciding to include or exclude them.
 - **Commit message** — draft it, referencing the Jira ticket key if one exists (e.g. `PROJ-123: add soft-delete endpoint for orders`).
 - **Base branch** — determine the repo's actual default/integration branch (`git remote show origin`, or check `gh pr list --limit 5` for the pattern other PRs use) — don't assume `main` vs `develop`.
-- **PR title and body** — draft the full body from the AIDLC artifacts, not invented:
-  - Summary: `01-requirements.md`'s problem statement (or the restated Jira request) plus `04-implementation-plan.md`'s summary
-  - What changed: the implementer's file-by-file summary
+- **PR preferences** — before drafting title/body, ask the human once (a single batch, not stage-by-stage): commit message convention if the repo has none obvious, and whether they want the default PR body pattern below or something else. Don't draft-correct-redraft; get preferences up front.
+- **PR title and body** — default pattern, unless the human said otherwise: **What changed** / **Why**. Draft from the AIDLC artifacts, not invented:
+  - What changed: the implementer's file-by-file summary, cross-checked against the actual diff
+  - Why: `01-requirements.md`'s problem statement (or the restated Jira request) plus `04-implementation-plan.md`'s summary/rationale
   - Test plan: `05-test-plan.md`'s results section — pass/fail counts
   - Ticket link, if any, as plain text (e.g. `Ticket: PROJ-123`)
   - Whatever attribution lines this project's standing instructions specify for PR descriptions

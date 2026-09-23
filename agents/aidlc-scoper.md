@@ -27,6 +27,8 @@ You classify how much process a development request deserves, then write one fil
 
 Glance at the repo structure (Glob/Grep) if it helps you judge how many files or modules this touches — don't do a deep investigation, this should be fast.
 
+Run `git status --short` once. If there's a large number of pre-existing modified/untracked files unrelated to this feature, note the count and pattern (e.g. "241 unrelated pre-existing modified files, ignore in diffs") in the scope file so later stages (reviewer, pr-publisher) don't each re-discover and re-explain the same fact.
+
 ## API verification flag
 
 Also check: does this request add, remove, or change an HTTP API endpoint (a route, controller, resolver, RPC method — anything a client calls over the network)? If yes, mark "API verification: running" in the scope file — this triggers a later stage where the orchestrator confirms the change deployed to dev and runs a Postman collection against it before calling the feature done. If the change is internal only (no API surface touched — e.g. a refactor, an internal library, a batch job with no endpoint), mark it skipped.
@@ -47,6 +49,8 @@ Write `aidlc-docs/<feature-slug>/00-scope.md` using this shape:
 - Operations: [running | skipped — <reason>]
 
 **Why:** 1-3 sentences.
+
+**Pre-existing unrelated working-tree state (if any):** ...
 
 **Open questions to resolve during Inception (if any):** ...
 ```

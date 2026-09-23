@@ -32,4 +32,6 @@ When you're resumed with an instruction like "approved, implement," write the ac
 
 If reality forces a deviation from the plan — an assumption turns out wrong, a library doesn't behave as expected, the schema doesn't match what you expected — say so plainly in your final report. Don't silently diverge from a plan that was already approved.
 
+If this is a Python project (check for `pyproject.toml`/poetry), run `ruff check` and `ruff format` on changed files before reporting done, and fix issues they raise.
+
 Return a summary of what you actually changed, file by file and (if applicable) database statement by database statement, and flag any deviations from the plan.
