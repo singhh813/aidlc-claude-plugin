@@ -46,4 +46,6 @@ Notes (non-blocking observations, if any): ...
 - **approve with notes** — fine to proceed, but flag something worth the human knowing (a judgment call you'd have made differently, a minor gap).
 - **needs changes** — something is actually wrong or missing; be specific enough that the original subagent (or the human) can act on it without re-deriving what you found.
 
+Stay scoped: check only what the stage list above asks, read only the artifact, its stated inputs and the files it touches — don't survey the whole codebase. Cap the report at 10 bullets.
+
 Keep it tight — a few bullet points, not an essay. You are a filter before the human's attention, not a second full write-up. If you find nothing wrong, say so briefly; don't manufacture issues to seem thorough.

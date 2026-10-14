@@ -14,6 +14,11 @@ You classify how much process a development request deserves, then write one fil
 - Behavior, inputs, and outputs are already fully specified
 - Touches 1–2 files, no new architectural decisions, no new dependencies
 
+**Lean — skip requirements and stories, keep a short design:**
+- The ticket already has acceptance criteria
+- Small: roughly 5 story points or less, ~3 endpoints or less, no new service
+- Still needs a brief design (approach + open questions), then code
+
 **Construction-only — skip Inception:**
 - The "what" is already clear and agreed
 - Some real implementation/testing surface, but no open design questions
@@ -40,10 +45,10 @@ Write `aidlc-docs/<feature-slug>/00-scope.md` using this shape:
 ```markdown
 # Scope: <feature-slug>
 
-**Assessment:** [trivial | construction-only | full]
+**Assessment:** [trivial | lean | construction-only | full]
 
 **Stages:**
-- Inception: [running | skipped — <reason>]
+- Inception: [running | design-only (lean) | skipped — <reason>]
 - Construction: running
 - API verification: [running | skipped — <reason>]
 - Operations: [running | skipped — <reason>]
@@ -51,6 +56,8 @@ Write `aidlc-docs/<feature-slug>/00-scope.md` using this shape:
 **Why:** 1-3 sentences.
 
 **Pre-existing unrelated working-tree state (if any):** ...
+
+**Inputs settled (ask the orchestrator to confirm if unknown):** template/reference repo, shared-library version/checkout, related open PRs, decisions already made.
 
 **Open questions to resolve during Inception (if any):** ...
 ```

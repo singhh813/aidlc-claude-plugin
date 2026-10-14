@@ -13,10 +13,12 @@ Each subagent gets its own context window, its own tool restrictions, and (for t
 
 ## Review is required by default — the human can skip it
 
-Every stage below that ends in "Get approval" also gets an independent **`aidlc-reviewer`** pass first, by default. This is required, not optional per-stage — but the human can turn it off for the whole run.
+By default the independent **`aidlc-reviewer`** runs only at the high-value gates: **`03-design`**, **`04-implementation-code`**, and **`06-pr-plan`** (plus any stage touching auth/security/schema). Scope, requirements, stories, implementation plan, test plan and operations get the human gate only — reviewing them cost the most and caught the least. The human can ask for `--full-review` to review every gate, or turn review off entirely.
+
+- **If the human says `--full-review`** — run review at every gate per "Running a gate."
 
 - **If the human's request includes something like `--no-review`, "skip review," or "no LLM review this run"** — skip every `aidlc-reviewer` delegation for the rest of this run and say so once, up front, so it's clear gates are now author-only. Don't ask about it stage-by-stage; it's an all-or-nothing setting for the run once said.
-- **Otherwise**, run review at every gate per "Running a gate" below.
+- **Otherwise**, run review only at the gates listed above; at other gates skip straight to step 2 of "Running a gate" (present + ask). Reviewer passes on non-security stages may use `model: haiku`.
 
 The human can also re-enable it mid-run ("turn review back on") — from that point forward, resume running it.
 
@@ -64,7 +66,15 @@ Delegate to **`aidlc-scoper`**: "Assess scope for `<feature-slug>`: <restate the
 
 Read back its short summary. If it recommends "trivial," tell the user, skip the rest of this workflow entirely, and just do the work yourself directly. Otherwise show the user the stage plan (including whether API verification will run) and get a quick go-ahead before continuing.
 
-### Step 1 — Inception (skip if 00-scope.md marked it skipped)
+### Step 0.5 — Settle inputs before drafting
+
+Most revision loops come from decisions that arrive late. Before any Inception/Construction delegation, ask the human **once, in one batch**, for anything `00-scope.md` lists under "Inputs settled" that is unknown: template/reference repo, whether shared-library checkouts are current, related open PRs, decisions already made (storage, auth, naming). Record the answers in `00-scope.md` and pass them to every subagent.
+
+### Lean mode (`00-scope.md` Assessment: lean, or the human says "lean")
+
+For small tickets that already have acceptance criteria: skip `01-requirements` and `02-user-stories`; run only `03-design` (short, with an open-questions list), then Construction onward. Because the gate hook blocks skipping ahead, right after scope approval write `.gate-state.json` with `last_approved_stage` set to the last skipped stage (`02-user-stories`) — a direct file write, same as any approval.
+
+### Step 1 — Inception (skip if 00-scope.md marked it skipped; lean mode runs only item 3)
 
 Three delegations in order, **each with a gate**:
 
@@ -75,12 +85,12 @@ Three delegations in order, **each with a gate**:
 ### Step 2 — Construction
 
 1. Delegate to **`aidlc-implementer`**: plan only, no code yet → `04-implementation-plan.md`. Note the agent ID.
-2. Review + gate on the plan (including any database changes it flagged), per "Running a gate."
-3. **Resume the same `aidlc-implementer`** with "approved, implement." Let it write code. If the plan includes database writes and the `postgres` MCP server is connected, each write statement will pause for your explicit approval when it runs (via `pg-write-guard.sh`) — that's expected, not a bug.
+2. Gate on the plan (including any database changes it flagged), per "Running a gate."
+3. **Implement.** If the plan has multiple phases, delegate each phase to a **fresh `aidlc-implementer`** (give it the plan path and phase name) instead of resuming — a resumed agent drags its full context along. For a single-phase plan, resuming with "approved, implement" is fine. Don't stop an implementer mid-run unless necessary; redoing its work is the costliest rework. If the plan includes database writes and the `postgres` MCP server is connected, each write statement will pause for your explicit approval when it runs (via `pg-write-guard.sh`) — that's expected, not a bug.
 4. **Review the code itself as its own gate** (not just the plan): delegate to `aidlc-reviewer` with stage `implementation-code`, pointing it at the changed files and the approved plan, then present its verdict to the human alongside the implementer's change summary before moving on — a plan can be approved and still be implemented with bugs or drift, so this is a separate check, not a re-review of the plan.
 5. Delegate to **`aidlc-tester`**: plan only → `05-test-plan.md`.
 6. Review + gate on the test plan.
-7. **Resume the same `aidlc-tester`** with "approved, write and run tests." Report results honestly.
+7. **Run the tester** — resume the same `aidlc-tester` with "approved, write and run tests," or use a fresh one pointing at `05-test-plan.md` if it has grown large. Report results honestly.
 8. **Review the test results as their own gate**: delegate to `aidlc-reviewer` with stage `test-results` — it's checking whether "passing" is real (no weakened/skipped assertions) and whether coverage actually matches the acceptance criteria, not just re-reading the pass count. If tests fail and can't be fixed within the tester's scope, stop here — do not proceed to publishing a PR with failing tests.
 
 ### Step 2.6 — Publish the PR (skip only if the human said they'll handle git/PR themselves)
@@ -100,7 +110,7 @@ This stage assumes merging the PR into `develop` triggers an automatic deploy to
 2. Delegate to **`aidlc-deploy-watcher`**: "Check merge status for PR #<n> into develop."
 3. If merged: proceed to step 4.
    If not merged: tell the human plainly that you'll keep checking automatically, then use the `ScheduleWakeup` tool to re-check in 5 minutes. **Bound this**: check at most 12 times (1 hour total) before stopping and telling the human to let you know when it's merged instead of continuing to poll silently. Always tell the human up front that this polling is happening and that they can tell you to stop it at any time — don't let it run invisibly.
-4. Once merged, ask the human (if not already known) for the dev server's base URL, then delegate to **`aidlc-api-verifier`** with the feature slug, the PR/diff context, and the dev base URL. It builds/updates a Postman collection and runs it, writing `07-api-verification.md`.
+4. Once merged, ask the human (if not already known) for the dev server's base URL and any auth token/header needed to call it, then delegate to **`aidlc-api-verifier`** with the feature slug, the PR/diff context, the dev base URL, and the auth info. It builds/updates a Postman collection (authoring only) and executes the actual verification via `curl` — dev is VPN-only, so Postman Cloud can't run requests against it — writing `07-api-verification.md`.
 5. Show the results.
    - **All passed** → tell the human this is confirmed working on dev, proceed to Step 3 (or done, if Operations isn't running).
    - **Any failed** → per this project's standing instruction, do both: (a) show the human the specific failures so they're looped in, and (b) delegate the failure details to `aidlc-implementer` (resume if still addressable) to fix. The fix's code gets its own `aidlc-reviewer` pass same as step 4 of Construction. Once approved, delegate to **`aidlc-pr-publisher`** again (resume if still addressable) to plan and — after another quick approval — push the fix to the *same* branch/PR (not a new one). Then this stage repeats from step 2. Don't silently re-verify against the old, broken deploy.
@@ -122,7 +132,7 @@ After a subagent returns an artifact (a file, or code changes, or — for the PR
 3. **Ask**:
    - If the reviewer said **approve** or **approve with notes**: "Approve this and move to [next stage], or want changes first?"
    - If the reviewer said **needs changes**: lead with that — "The reviewer flagged issues: <list>. Want me to send this back for a fix, or approve as-is anyway?" Don't auto-send it back without asking; the human might disagree with the reviewer.
-4. If changes are requested (by the human, or by the human accepting the reviewer's findings), delegate a revision to the *original authoring subagent* (resume it if still addressable) — never ask `aidlc-reviewer` to fix anything itself, it has no write access by design. Once revised, review again before re-presenting.
+4. If changes are requested (by the human, or by the human accepting the reviewer's findings), delegate a revision to the authoring subagent, asking for targeted `Edit`s to the affected sections only, never a full rewrite (resume it only for small edits; for larger ones spawn a fresh agent with the artifact path plus the list of changes) — never ask `aidlc-reviewer` to fix anything itself, it has no write access by design. Once revised, review again before re-presenting.
 5. If the user said up front "run it all, don't stop for approval": still run the reviewer at each stage, still post its verdict, but only stop and block on a human response if the verdict is "needs changes" or something is ambiguous enough that guessing wrong would waste real work. On "approve"/"approve with notes," proceed automatically and just note that you did.
 
 ## If a subagent type is missing

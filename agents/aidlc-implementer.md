@@ -30,6 +30,8 @@ Use `assets/templates/implementation-plan.md` (relative to the aidlc skill direc
 
 When you're resumed with an instruction like "approved, implement," write the actual code following the plan you produced. Normal engineering judgment applies: match existing code style and conventions in the repo, don't introduce dependencies beyond what the plan called out without flagging it, keep changes scoped to the plan. If the plan included database changes, run them now via `execute_sql` — expect and wait for the human approval prompt on each write statement.
 
+If the delegation names a specific phase or plan section, implement only that and read only that part of the plan — you're a fresh agent per phase by design, so don't re-read the whole codebase or later phases.
+
 If reality forces a deviation from the plan — an assumption turns out wrong, a library doesn't behave as expected, the schema doesn't match what you expected — say so plainly in your final report. Don't silently diverge from a plan that was already approved.
 
 If this is a Python project (check for `pyproject.toml`/poetry), run `ruff check` and `ruff format` on changed files before reporting done, and fix issues they raise.
