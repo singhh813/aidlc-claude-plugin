@@ -149,6 +149,22 @@ class TestAgentContracts(unittest.TestCase):
                 f"Agent {agent_name} instructions missing required '[STAGE:' tag reference",
             )
 
+        # Check multi-stage agents explicitly cover both stages in their instruction body
+        implementer_body = (self.agents_dir / "aidlc-implementer.md").read_text(encoding="utf-8")
+        self.assertIn("04-implementation-code", implementer_body)
+
+        tester_body = (self.agents_dir / "aidlc-tester.md").read_text(encoding="utf-8")
+        self.assertIn("05-test-results", tester_body)
+
+    def test_pr_plan_template_exists(self):
+        """Verifies the 06-pr-plan template exists and contains required sections."""
+        template_file = REPO_ROOT / "skills" / "aidlc" / "assets" / "templates" / "pr-plan.md"
+        self.assertTrue(template_file.exists(), "pr-plan.md template missing")
+        content = template_file.read_text(encoding="utf-8")
+        self.assertIn("## Git Target & Branching", content)
+        self.assertIn("## Files to Stage", content)
+        self.assertIn("## Commit Message", content)
+
     def test_modular_commands_exist_and_have_descriptions(self):
         """Verifies all required slash commands exist and declare frontmatter descriptions."""
         commands_dir = REPO_ROOT / "commands"
@@ -157,6 +173,9 @@ class TestAgentContracts(unittest.TestCase):
             "scope.md",
             "design.md",
             "build.md",
+            "ship.md",
+            "verify.md",
+            "ops.md",
             "review.md",
             "dev.md",
             "test.md",
@@ -173,4 +192,5 @@ class TestAgentContracts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 

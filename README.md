@@ -155,15 +155,30 @@ Summary:
 | `/aidlc:scope <request>` | Run intake and scoping only (`00-scope.md`). |
 | `/aidlc:design <slug>` | Run Inception: requirements, user stories, and architecture design. |
 | `/aidlc:build <slug>` | Run Construction: implementation planning, coding, and testing. |
+| `/aidlc:ship <slug>` | Run Delivery: plan commit/branch/PR, review, and open GitHub PR. |
+| `/aidlc:verify <slug>` | Run Dev Deployment Verification: check PR merge and execute API verification. |
+| `/aidlc:ops <slug>` | Run Operations: deployment, rollback, and monitoring plan. |
 | `/aidlc:dev <task>` | **Direct Development**: Plans complex tasks, obtains approval, and writes code. |
 | `/aidlc:test <target>` | **Direct Testing**: Plans test coverage, obtains approval, and executes tests. |
 | `/aidlc:review <target>` | Run standalone `aidlc-reviewer` on an artifact, stage, or git diff. |
 
 ---
 
+## MCP Server Prerequisites (Optional / Recommended)
+
+The AIDLC workflow integrates with external systems via MCP servers when available, with graceful fallbacks when disconnected:
+
+| MCP Server | Used By Agent | Purpose | Graceful Fallback if Disconnected |
+| :--- | :--- | :--- | :--- |
+| **`atlassian`** | `aidlc-jira-fetcher` | Fetch Jira issue title, description, and acceptance criteria | User pastes ticket details directly into conversation |
+| **`postgres`** | `aidlc-architect`, `aidlc-implementer` | Ground data models and migrations in live DB schema | Static inspection of SQLAlchemy / Alembic migration files |
+| **`postman`** | `aidlc-api-verifier` | Author and update shared API test collections | Generate local `verify.sh` or `.http` scripts and run `curl` |
+
+---
+
 ## Testing & Integrity Verification
 
-Run the test suite using Python `unittest`:
+Run the test suite using Python `unittest` or `pytest`:
 
 ```powershell
 python -m unittest discover tests
@@ -172,3 +187,4 @@ python -m unittest discover tests
 Tests verify:
 - Frontmatter integrity, model definitions, and tool bindings across all agents ([tests/test_agent_contracts.py](file:///c:/Users/HarjinderSingh1/Project/aidlc-claude-plugin/tests/test_agent_contracts.py)).
 - PreToolUse gate guard sequence rules and permission decisions ([tests/test_gate_guard.py](file:///c:/Users/HarjinderSingh1/Project/aidlc-claude-plugin/tests/test_gate_guard.py)).
+

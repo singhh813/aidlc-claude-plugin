@@ -4,12 +4,12 @@ hooks/aidlc-gate-guard.py
 
 PreToolUse hook for Task and Agent tool calls in the AIDLC multi-agent system.
 Enforces AIDLC stage sequencing: a delegation to a stage-producing subagent
-must be tagged "[STAGE:<feature-slug>:<stage-id>]" as the first line of its prompt,
+must be tagged "[STAGE:<feature-slug>:<stage-id>]" in its prompt text,
 and that stage must be the legitimate next step after
 aidlc-docs/<feature-slug>/.gate-state.json's last_approved_stage.
 
 Deliberately dependency-free (standard library json, sys, re, os, pathlib).
-Works identically across Windows, macOS, and Linux.
+Works robustly across Windows, macOS, and Linux.
 """
 
 import json
@@ -17,6 +17,18 @@ import os
 import re
 import sys
 from pathlib import Path
+
+# Ensure UTF-8 stream decoding/encoding across all platforms (specifically Windows)
+if hasattr(sys.stdin, "reconfigure"):
+    try:
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 STAGES = [
     "00-scope",
@@ -32,6 +44,7 @@ STAGES = [
     "08-operations",
 ]
 
+# Stage-producing subagents (canonical filenames without .md)
 STAGE_PRODUCING_AGENTS = {
     "aidlc-scoper",
     "aidlc-requirements-analyst",
@@ -42,6 +55,18 @@ STAGE_PRODUCING_AGENTS = {
     "aidlc-pr-publisher",
     "aidlc-api-verifier",
     "aidlc-ops-planner",
+}
+
+
+def normalize_agent_name(name: str) -> str:
+    """Strips hyphens, underscores, spaces and lowercases for flexible matching."""
+    if not isinstance(name, str):
+        return ""
+    return re.sub(r"[^a-zA-Z0-9]", "", name).lower()
+
+
+NORMALIZED_STAGE_PRODUCING_AGENTS = {
+    normalize_agent_name(agent) for agent in STAGE_PRODUCING_AGENTS
 }
 
 
@@ -107,15 +132,20 @@ def main() -> None:
         if not raw_input.strip():
             allow("aidlc-gate-guard: empty input received — allowing without check.")
         data = json.loads(raw_input)
+        if not isinstance(data, dict):
+            allow("aidlc-gate-guard: non-dict payload received — allowing without check.")
+            return
     except Exception as e:
         deny(f"aidlc-gate-guard: failed to parse JSON input from hook event: {e}")
         return
 
     subagent_name = extract_subagent_name(data)
+    norm_agent_name = normalize_agent_name(subagent_name)
+    is_stage_producing = norm_agent_name in NORMALIZED_STAGE_PRODUCING_AGENTS
     prompt_text = extract_prompt_text(data)
 
     if not prompt_text:
-        if subagent_name in STAGE_PRODUCING_AGENTS:
+        if is_stage_producing:
             deny(
                 f"aidlc-gate-guard: delegation to stage-producing subagent '{subagent_name}' "
                 "missing required prompt and [STAGE:<feature-slug>:<stage-id>] tag."
@@ -124,11 +154,11 @@ def main() -> None:
         allow("aidlc-gate-guard: no recognizable prompt field on this delegation — allowing.")
         return
 
-    lines = [line.strip() for line in prompt_text.splitlines() if line.strip()]
-    first_line = lines[0] if lines else ""
-
-    # Standalone mode: allows direct execution of agents without stage gates
-    standalone_match = re.match(r"^\[STANDALONE(?::([^\]]+))?\]", first_line, re.IGNORECASE)
+    # Check top portion of prompt for standalone tag (case-insensitive, tolerates markdown decoration)
+    search_prefix = prompt_text[:500]
+    standalone_match = re.search(
+        r"\[STANDALONE(?::([^\]]+))?\]", search_prefix, re.IGNORECASE
+    )
     if standalone_match:
         mode = standalone_match.group(1) or "general"
         allow(
@@ -136,10 +166,13 @@ def main() -> None:
         )
         return
 
-    match = re.match(r"^\[STAGE:([A-Za-z0-9_-]+):([A-Za-z0-9_-]+)\]", first_line)
+    # Flexible matching for [STAGE:<feature-slug>:<stage-id>]
+    stage_match = re.search(
+        r"\[STAGE\s*:\s*([A-Za-z0-9_-]+)\s*:\s*([A-Za-z0-9_-]+)\s*\]", search_prefix
+    )
 
-    if not match:
-        if subagent_name in STAGE_PRODUCING_AGENTS:
+    if not stage_match:
+        if is_stage_producing:
             deny(
                 f"aidlc-gate-guard: delegation to stage-producing subagent '{subagent_name}' "
                 "must begin with '[STAGE:<feature-slug>:<stage-id>]'. Tag was missing or malformed."
@@ -151,8 +184,8 @@ def main() -> None:
         )
         return
 
-    feature_slug = match.group(1).strip()
-    requested_stage = match.group(2).strip()
+    feature_slug = stage_match.group(1).strip()
+    requested_stage = stage_match.group(2).strip()
 
     if requested_stage not in STAGES:
         deny(
@@ -162,7 +195,11 @@ def main() -> None:
         return
 
     req_idx = STAGES.index(requested_stage)
-    state_file = Path("aidlc-docs") / feature_slug / ".gate-state.json"
+
+    # Resolve working directory: prioritize payload 'cwd' over process cwd
+    cwd_candidate = data.get("cwd")
+    base_dir = Path(cwd_candidate) if (cwd_candidate and isinstance(cwd_candidate, str)) else Path.cwd()
+    state_file = base_dir / "aidlc-docs" / feature_slug / ".gate-state.json"
 
     if not state_file.exists():
         if req_idx == 0:
@@ -177,11 +214,14 @@ def main() -> None:
     try:
         with open(state_file, "r", encoding="utf-8") as f:
             state_data = json.load(f)
+        if not isinstance(state_data, dict):
+            deny(f"aidlc-gate-guard: state file {state_file} does not contain a JSON object.")
+            return
     except Exception as e:
         deny(f"aidlc-gate-guard: failed to read state file {state_file}: {e}")
         return
 
-    enforcement = state_data.get("enforcement", "on")
+    enforcement = str(state_data.get("enforcement", "on")).lower()
     if enforcement == "off":
         allow("aidlc-gate-guard: enforcement is off for this run (review/gate skipped by human request).")
         return
@@ -193,8 +233,8 @@ def main() -> None:
         )
         return
 
-    last_approved = state_data.get("last_approved_stage", "none")
-    if last_approved == "none":
+    raw_last_approved = state_data.get("last_approved_stage")
+    if raw_last_approved is None or str(raw_last_approved).strip().lower() in ("none", ""):
         if req_idx == 0:
             allow("aidlc-gate-guard: no stage approved yet — 00-scope may proceed.")
             return
@@ -204,6 +244,7 @@ def main() -> None:
         )
         return
 
+    last_approved = str(raw_last_approved).strip()
     if last_approved not in STAGES:
         deny(
             f"aidlc-gate-guard: {state_file}'s last_approved_stage ('{last_approved}') "
@@ -213,16 +254,24 @@ def main() -> None:
 
     last_idx = STAGES.index(last_approved)
 
-    # 2. Standard progression: allow re-running the current stage (revisions), or moving forward by at most 1 step.
-    if req_idx <= last_idx + 1:
+    # 2. Sequential progression: re-running current stage (revision), or advancing by exactly 1 step
+    if req_idx == last_idx or req_idx == last_idx + 1:
         allow(
             f"aidlc-gate-guard: '{requested_stage}' is a valid next/current stage after last-approved '{last_approved}'."
         )
         return
 
-    # 3. Risk-Adaptive Fast-Track Mode: permits skipping Inception / intermediate planning stages
-    mode = state_data.get("mode", "normal")
-    risk = state_data.get("risk", "high")
+    # 3. Explicit rework: re-running an earlier stage is permitted, but note that .gate-state.json will need updating
+    if req_idx < last_idx:
+        allow(
+            f"aidlc-gate-guard: re-running prior stage '{requested_stage}' (prior approval was '{last_approved}'). "
+            "Remember to record updated gate approvals before advancing."
+        )
+        return
+
+    # 4. Risk-Adaptive Fast-Track Mode: permits skipping Inception / intermediate planning stages
+    mode = str(state_data.get("mode", "")).lower()
+    risk = str(state_data.get("risk", "")).lower()
     is_fast_track = mode == "fast-track" or risk == "low"
 
     if is_fast_track:
@@ -247,8 +296,8 @@ def main() -> None:
             ],
             "03-design": ["04-implementation-plan", "04-implementation-code"],
             "04-implementation-plan": ["04-implementation-code", "05-test-plan"],
-            "04-implementation-code": ["05-test-plan", "05-test-results", "06-pr-plan"],
-            "05-test-plan": ["05-test-results", "06-pr-plan"],
+            "04-implementation-code": ["05-test-plan", "05-test-results"],
+            "05-test-plan": ["05-test-results"],
             "05-test-results": ["06-pr-plan", "07-api-verification", "08-operations"],
             "06-pr-plan": ["07-api-verification", "08-operations"],
             "07-api-verification": ["08-operations"],
