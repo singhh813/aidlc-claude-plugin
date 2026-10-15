@@ -1,7 +1,7 @@
 # API verification: <feature-slug>
 
 **Target:** dev (<base URL>)
-**Collection:** <link or name> (authored in Postman, executed via curl — dev is VPN-only)
+**Collection:** <link or name> (authored in Postman or script, executed via curl)
 **Run at:** <timestamp>
 
 ## Results

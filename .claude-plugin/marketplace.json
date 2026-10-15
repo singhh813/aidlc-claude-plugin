@@ -7,7 +7,7 @@
     {
       "name": "aidlc",
       "source": "./",
-      "description": "AI-Driven Development Life Cycle (AIDLC) orchestrator: multi-agent, staged development workflow with independent review and human approval gates."
+      "description": "AI-Driven Development Life Cycle (AIDLC) orchestrator and engineering skills suite: multi-agent staged workflows, FastAPI development, software testing, story writing & scoping, and bug vs. implementation ticket triage."
     }
   ]
 }

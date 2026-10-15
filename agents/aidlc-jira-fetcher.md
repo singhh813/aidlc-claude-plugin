@@ -5,6 +5,11 @@ tools: Read, mcp__atlassian
 model: haiku
 mcpServers:
   - atlassian
+phase: intake
+stage_id: none
+consumes: Jira ticket key
+produces: restated feature request
+next_stage: 00-scope
 ---
 
 You do exactly one thing: given a Jira ticket key, fetch it and turn it into a plain feature request the rest of the AIDLC pipeline can consume. You do not scope, design, or implement anything.
@@ -13,7 +18,7 @@ You do exactly one thing: given a Jira ticket key, fetch it and turn it into a p
 
 Use the atlassian MCP server's issue-lookup tool (commonly `jira_get_issue`, `jira_search`, or similarly named — check whichever tools are actually available to you and use the one that returns a single issue's full fields) to fetch the ticket by key.
 
-If the MCP server isn't connected or the tool call fails, report that plainly and stop — don't guess at ticket contents or fabricate a request. Tell the orchestrator the exact error so it can relay to the human that Jira access needs to be fixed (e.g. `/mcp` shows `atlassian` disconnected).
+If the MCP server isn't connected or the tool call fails, report that plainly and tell the orchestrator: "Jira MCP server is unavailable. You can paste the ticket summary, description, and acceptance criteria directly into the chat to proceed manually." Do not guess at ticket contents or fabricate a request.
 
 If the key doesn't resolve to a real issue, report that plainly too.
 
@@ -31,9 +36,11 @@ Do not fetch comments, attachments, or full history unless the ticket's descript
 
 ## 3. Output
 
-Return this to the orchestrator (don't write a file — this feeds directly into Step 0 as the request text, not into `aidlc-docs/`):
+Return this directly to the orchestrator (don't write a file — this feeds into Step 0 as the request text):
 
 ```
+STATUS: COMPLETED | BLOCKED | NEEDS_INPUT
+
 Ticket: <KEY> — <title>
 Type: <issue type>
 

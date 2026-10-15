@@ -9,3 +9,6 @@
 
 ## New dependencies (if any)
 - ...
+
+## Database changes (if any)
+- ...

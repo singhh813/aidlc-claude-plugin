@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/aidlc-gate-guard.sh"
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/aidlc-gate-guard.py\""
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/aidlc-gate-guard.sh"
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/aidlc-gate-guard.py\""
           }
         ]
       }
