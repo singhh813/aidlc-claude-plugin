@@ -200,6 +200,28 @@ class TestGateGuardHook(unittest.TestCase):
         self.assertEqual(res["permissionDecision"], "allow")
         self.assertIn("standalone mode 'test'", res["permissionDecisionReason"])
 
+    def test_path_traversal_slug_denied(self):
+        payload = {
+            "tool_input": {
+                "subagent_type": "aidlc-implementer",
+                "prompt": "[STAGE:../../etc:04-implementation-code]\nMalicious path traversal attempt",
+            }
+        }
+        res = self.run_hook(payload)
+        self.assertEqual(res["permissionDecision"], "deny")
+        self.assertIn("must begin with '[STAGE:<feature-slug>:<stage-id>]'", res["permissionDecisionReason"])
+
+    def test_standalone_dev_with_jira_context_allowed(self):
+        payload = {
+            "tool_input": {
+                "subagent_type": "aidlc-implementer",
+                "prompt": "[STANDALONE:dev]\nTask: PROJ-123 — Fix token expiry\nAC: Return 401 on expired token",
+            }
+        }
+        res = self.run_hook(payload)
+        self.assertEqual(res["permissionDecision"], "allow")
+        self.assertIn("standalone mode 'dev'", res["permissionDecisionReason"])
+
 
 if __name__ == "__main__":
     unittest.main()

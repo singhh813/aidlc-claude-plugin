@@ -136,7 +136,7 @@ def main() -> None:
         )
         return
 
-    match = re.match(r"^\[STAGE:([^:]+):([A-Za-z0-9_-]+)\]", first_line)
+    match = re.match(r"^\[STAGE:([A-Za-z0-9_-]+):([A-Za-z0-9_-]+)\]", first_line)
 
     if not match:
         if subagent_name in STAGE_PRODUCING_AGENTS:

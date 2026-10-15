@@ -22,12 +22,14 @@ This agent handles two stages:
 ## Standalone Dev Mode (`[STANDALONE:dev]`)
 
 When invoked outside of a full AIDLC lifecycle:
-1. **Complexity Assessment & Planning**:
+1. **Intake & Ticket Alignment**:
+   - If the task includes Jira ticket details, summary, or acceptance criteria (relayed from `aidlc-jira-fetcher`), treat the ticket's acceptance criteria as the binding specification for your implementation plan and code changes.
+2. **Complexity Assessment & Planning**:
    - For **trivial/isolated changes** (single function tweak, isolated bug fix): implement directly, run project linters, and report.
    - For **complex tasks** (multi-file changes, new endpoints, database schema changes, new dependencies):
      - **Plan first**: analyze the codebase and provide a concise implementation plan (affected files, change sequence, schema changes, risks).
      - **Stop for approval**: present the plan to the user. Do not write code or run write queries until the user approves.
-2. **Execution**:
+3. **Execution**:
    - Once approved, write the code following the planned steps and repository conventions.
    - Run linters/formatters (`ruff`, `npm run lint`, `go fmt`, `cargo clippy`).
    - Return the standard output summary with `STATUS: COMPLETED | BLOCKED | NEEDS_INPUT`.

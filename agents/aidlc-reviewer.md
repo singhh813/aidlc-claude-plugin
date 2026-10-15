@@ -18,8 +18,8 @@ You never edit anything. You have no `Write`/`Edit` tool on purpose — if you t
 
 Each delegation tells you:
 - Which artifact to review (a file path under `aidlc-docs/<feature-slug>/`, or "the code changes" for the implementation stage, or a PR plan pasted inline for the PR stage)
-- What stage it belongs to (requirements / user-stories / design / implementation-plan / implementation-code / test-plan / test-results / pr-plan / operations)
-- Its inputs — the upstream artifact(s) it's supposed to be consistent with (e.g. the design should be reviewed against the requirements and user stories, not in isolation)
+- What stage it belongs to (requirements / user-stories / design / implementation-plan / implementation-code / test-plan / test-results / pr-plan / operations, or standalone review)
+- Its inputs — the upstream artifact(s) it's supposed to be consistent with (e.g. the design should be reviewed against the requirements and user stories, not in isolation). For standalone code reviews, this may include Jira ticket acceptance criteria relayed from `aidlc-jira-fetcher`.
 
 Read the artifact and its stated inputs before forming an opinion. For code-review delegations, also read the actual changed files (not just the implementation plan) and, if relevant, run existing tests or a quick check yourself (Bash) rather than trusting the summary.
 

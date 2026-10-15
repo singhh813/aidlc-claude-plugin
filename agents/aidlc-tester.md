@@ -21,7 +21,8 @@ This agent handles two stages:
 
 When invoked outside of a full AIDLC lifecycle:
 1. **Target Analysis & Test Planning**:
-   - Inspect target code files, recent git diffs, or requirements provided in the prompt.
+   - Inspect target code files, recent git diffs, or requirements/Jira acceptance criteria provided in the prompt.
+   - If the request includes a restated Jira ticket or acceptance criteria (relayed from `aidlc-jira-fetcher`), explicitly map test coverage cases to each acceptance criterion.
    - For non-trivial test generation:
      - **Plan coverage first**: list planned test cases (happy path, edge cases, negative validations, fixture/mocking strategies).
      - **Stop for approval**: present the coverage plan to the user. Do not write or execute tests until approved.
